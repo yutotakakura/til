@@ -1,13 +1,14 @@
-/* 
-連結リスト
+/*
+ 
+【連結リスト】
 
 以下の命令を受け付ける双方向連結リストを実装する。
-insert x : 連結リストの先頭にキーxを持つ要素を継ぎ足す
-delete x : キーxを持つ最初の要素を連結リストから削除する。そのような要素が存在しない場合は、何もしない。
-deleteFirst : 連結リストの先頭の要素を削除する
-deleteLast : 連結リストの末尾の要素を削除する
+    insert x : 連結リストの先頭にキーxを持つ要素を継ぎ足す
+    delete x : キーxを持つ最初の要素を連結リストから削除する。そのような要素が存在しない場合は、何もしない。
+    deleteFirst : 連結リストの先頭の要素を削除する
+    deleteLast : 連結リストの末尾の要素を削除する
 
-入力
+【入力】
 n
 command1
 command2
@@ -15,15 +16,29 @@ command3
 ...
 commandn
 
-出力
+【出力】
 全ての命令が終了した後の、連結リスト内のキーを順番に出力する。キーは1つの空白文字で区切る。
 
-制約
+【制約】
 命令数 <= 2,000,000
 delete x の回数 <= 20
 0 <= キーの値 <= 10^9
 命令の過程でのリストの要素数 <= 10^6
 dekete, deleteFirst, deleteLastが与えられるとき、リストには1つ以上の要素が存在する
+
+【入力例】
+7
+insert 5
+insert 2
+insert 3
+insert 1
+delete 3
+insert 6
+delete 5
+
+【出力例】
+6 1 2
+
 */
     
 #include <bits/stdc++.h>
@@ -102,11 +117,22 @@ int main() {
     int key, n, i;
     int size = 0;
     char com[20];
-    int np = 0, nd = 0;
     scanf("%d", &n);
     init();
     for(i = 0; i < n; i++) {
         scanf("%s%d", com, &key);
-        // ToDo : 続きの実装
+        if (com[0] == 'i') { insert(key); }
+        else if (com[0] == 'd') {
+            if (strlen(com) > 6) {
+                if (com[6] == 'F') deleteFirst();
+                else if (com[6] == 'L') deleteLast();
+            } else {
+                deleteKey(key);
+            }
+        }
     }
+
+    printList();
+
+    return 0;
 }
