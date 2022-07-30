@@ -39,6 +39,9 @@ delete 5
 【出力例】
 6 1 2
 
+【計算量】
+dleteFast, deleteLast は　O(1) だが、key指定の削除はO(N)
+
 */
     
 #include <bits/stdc++.h>
