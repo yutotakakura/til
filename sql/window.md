@@ -4,7 +4,43 @@
 
 ## ウィンドウ関数の構文上では、PARTITION BY句と ORDER BY句で特徴づけられたレコードの集合を意味するが、一般的に簡略系の構文が使われるため、かえってウィンドウの存在を意識しにくい。
 
+### 無名ウィンドウ構文（原則こっちを使用）
+```
+SELECT shohin_id, shohin_mei, hanbai_tanka,
+       AVG (hanbai_tanka) OVER (ORDER BY shohin_id                         
+                                ROWS BETWEEN 2 PRECEDING                   
+                                         AND CURRENT ROW) AS moving_avg    
+  FROM Shohin;
+```
+
+### 名前付きウィンドウ構文
+```
+SELECT shohin_id, shohin_mei, hanbai_tanka,
+       AVG(hanbai_tanka) OVER W AS moving_avg
+  FROM Shohin
+WINDOW W AS (ORDER BY shohin_id
+                 ROWS BETWEEN 2 PRECEDING 
+                          AND CURRENT ROW);
+```
+名前付きだとウィンドウ定義を使いまわせる
+```
+SELECT shohin_id, shohin_mei, hanbai_tanka,
+       AVG(hanbai_tanka)   OVER W AS moving_avg,
+       SUM(hanbai_tanka)   OVER W AS moving_sum,
+       COUNT(hanbai_tanka) OVER W AS moving_count,
+       MAX(hanbai_tanka)   OVER W AS moving_max
+  FROM Shohin
+WINDOW W AS (ORDER BY shohin_id
+                 ROWS BETWEEN 2 PRECEDING 
+                          AND CURRENT ROW);
+```
+
 ## PARTITION BY句はGROUP BY句から集約の機能を引いて、カットの機能だけを残し、ORDER BY句はレコードの順序を付ける。
+
+### ウィンドウ関数の機能
+- PARTITION BY句によるレコード集合のカット
+- ORDER BY句によるレコード集合の順序付け
+- フレーム句によるカレントレコードを中心としたサブセットの定義
 
 ## フレーム句はカーソルの機能をSQLに持ち込むことで、「カレントレコード」を中心にしたレコード集合の範囲を定義することができる。
 
@@ -111,6 +147,6 @@ SELECT sample_date AS cur_date,
   FROM LoadSample;
 ```
 
-## フレーム句を使うことで、異なる行のデータを1つの行に持ってくることができるようになり、行間比較が簡単に行えるようになった。
+フレーム句を使うことで、異なる行のデータを1つの行に持ってくることができるようになり、行間比較が簡単に行えるようになった。
 
 ## ウィンドウ関数の内部動作としては、現在のところ、レコードのソートが行われている。将来的にハッシュが採用される可能性もゼロではない。
