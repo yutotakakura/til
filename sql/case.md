@@ -1,6 +1,16 @@
 # CASE式
 
-## GROUP BY句でCASE式を使うことで、集約単位となるコードや階級を柔軟に設定できる。これは非定性的な集計に大きな威力を発揮する。
+## ポイント
+- GROUP BY句でCASE式を使うことで、集約単位となるコードや階級を柔軟に設定できる。これは非定性的な集計に大きな威力を発揮する。
+- 集約関数の中で使うことで、行持ちから列持ちへの水平展開も自由自在。
+- 反対に集約関数を条件式に組み込むことでHAVING句を使わずにクエリをまとめられる。
+- 実装依存の関数より表現力が非常に強力な上、汎用性も高まって一石二鳥。
+- そうした利点があるのも、CASE式が「文」ではなく「式」であるからこそ。
+  - 式なので、実行時には評価されて一つの値に定まる。
+  - CASE式は、列名や定数を書ける場所には常に書くことができる。
+- CASE式を駆使することで複数のSQLを一つにまとめられ、可読性もパフォーマンスも向上していいこと尽くし。
+
+## 既存のコード体系を新しい体系に変換して集計する
 
 ### テーブル定義
 ```
@@ -19,9 +29,7 @@ INSERT INTO PopTbl VALUES('東京', 400);
 INSERT INTO PopTbl VALUES('群馬', 50);
 ```
 
-### 条件
-県名を地方名に再分類する
-
+### 県名を地方名に再分類する
 ```
 SELECT CASE pref_name
           WHEN '徳島' THEN '四国'
@@ -62,9 +70,7 @@ SELECT CASE pref_name
  -- PostgreSQL, MySQLでは使える
 ```
 
-### 条件
-人口階級ごとに都道府県を分類する
-
+### 人口階級ごとに都道府県を分類する
 ```
 SELECT CASE WHEN population < 100 THEN '01'
             WHEN population >= 100 AND population < 200 THEN '02'
@@ -80,7 +86,7 @@ SELECT CASE WHEN population < 100 THEN '01'
                ELSE NULL END;
 ```
 
-## 集約関数の中で使うことで、行持ちから列持ちへの水平展開も自由自在。
+## 異なる条件の集計を1つのSQLで行う
 
 ### テーブル定義
 ```
@@ -108,10 +114,9 @@ INSERT INTO PopTbl2 VALUES('東京', '1',	250);
 INSERT INTO PopTbl2 VALUES('東京', '2',	150);
 ```
 
-### 条件
-性別ごとの人口を求める
+### 性別ごとの人口を求める
 
-### WHERE句を使った一般的なクエリ
+#### WHERE句を使ったクエリ
 ```
 -- 男性の人口
 SELECT pref_name,
@@ -128,7 +133,7 @@ SELECT pref_name,
  WHERE sex = '2';
 ```
 
-### CASE式でまとめたクエリ
+#### CASE式でまとめたクエリ
 ```
 SELECT pref_name,
        -- 男性の人口
@@ -149,7 +154,7 @@ SELECT pref_name,
   FROM PopTbl2;
 ```
 
-## 反対に集約関数を条件式に組み込むことでHAVING句を使わずにクエリをまとめられる。
+## CASE式の中で集約関数を使う
 
 ### テーブル定義
 ```
@@ -170,11 +175,9 @@ INSERT INTO StudentClub VALUES(400, 5, '水泳', 'N');
 INSERT INTO StudentClub VALUES(500, 6, '囲碁', 'N');
 ```
 
-### 条件
-1つだけのクラブに所属している学生については、そのクラブIDを取得する。
-複数のクラブに所属している学生については、主なクラブIDを取得する。
+### 1つだけのクラブに所属している学生については、そのクラブIDを取得する。複数のクラブに所属している学生については、主なクラブIDを取得する。
 
-### HAVING句を使った一般的なクエリ
+#### HAVING句を使ったクエリ
 1つのクラブに専念している学生を選択
 ```
 SELECT std_id, MAX(club_id) AS main_club
@@ -182,7 +185,6 @@ SELECT std_id, MAX(club_id) AS main_club
  GROUP BY std_id
 HAVING COUNT(*) = 1;
 ```
-
 クラブを掛け持ちしている学生を選択
 ```
 SELECT std_id, club_id AS main_club
@@ -190,7 +192,7 @@ SELECT std_id, club_id AS main_club
  WHERE main_club_flg = 'Y';
 ```
 
-### CASE式でまとめたクエリ
+#### CASE式でまとめたクエリ
 ```
 SELECT std_id,
        CASE WHEN COUNT(*) = 1 --1つのクラブに専念する学生の場合
@@ -202,10 +204,3 @@ SELECT std_id,
  GROUP BY std_id;
  ```
  HAVING句で条件分岐させるのは素人。プロはSELECT句で分岐させる。
-
-## ポイント
-- 実装依存の関数より表現力が非常に強力な上、汎用性も高まって一石二鳥。
-- そうした利点があるのも、CASE式が「文」ではなく「式」であるからこそ。
-  - 式なので、実行時には評価されて一つの値に定まる。
-  - CASE式は、列名や定数を書ける場所には常に書くことができる。
-- CASE式を駆使することで複数のSQLを一つにまとめられ、可読性もパフォーマンスも向上していいこと尽くし。
