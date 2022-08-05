@@ -91,3 +91,85 @@ CASE WHEN col_1 = 1 THEN '◯'
      WHEN col_1 IS NULL THEN '×'
 END
 ```
+
+### NOT INとNOT EXISTSは同値ではない
+テーブル定義
+```
+CREATE TABLE class_A
+(name CHAR(16) PRIMARY KEY,
+ age  INTEGER,
+ city CHAR(16)
+);
+
+INSERT INTO class_A VALUES('ブラウン', 22, '東京');
+INSERT INTO class_A VALUES('ラリー', 19, '埼玉');
+INSERT INTO class_A VALUES('ボギー', 21, '千葉');
+```
+
+```
+CREATE TABLE class_B
+(name CHAR(16) PRIMARY KEY,
+ age  INTEGER,
+ city CHAR(16)
+);
+
+INSERT INTO class_B VALUES('斎藤', 22, '東京');
+INSERT INTO class_B VALUES('田丸', 23, '東京');
+INSERT INTO class_B VALUES('山田', NULL, '東京');
+INSERT INTO class_B VALUES('和泉', 18, '千葉');
+INSERT INTO class_B VALUES('武田', 20, '千葉');
+INSERT INTO class_B VALUES('石川', 19, '神奈川');
+```
+
+Bクラスの東京在住の生徒と年齢が一致しないAクラスの生徒を選択するSQL?<br>
+結果は一行も選択されない
+```
+SELECT * FROM class_A 
+WHERE age NOT IN 
+	(SELECT age FROM class_B
+	WHERE city = '東京')
+```
+段階的に見ていく。<br>
+サブクエリを実行して、年齢のリストを取得
+```
+SELECT * FROM class_A 
+WHERE age NOT IN (22, 23, NULL);
+```
+NOT INとINを使って同値変換
+```
+SELECT * FROM class_A
+WHERE NOT age IN (22, 23, NULL);
+```
+IN述語をORで同値変換
+```
+SELECT * FROM class_A
+WHERE NOT ((age = 22) OR (age = 23) OR (age = NULL));
+```
+ド・モルガンの法則を使って同値変換
+```
+SELECT * FROM class_A
+WHERE NOT ((age = 22) AND NOT (age = 23) AND NOT (age = NULL));
+```
+NOTと=を<>で同値変換
+```
+SELECT * FROM class_A
+WHERE (age <> 22) AND (age <> 23) AND (age <> NULL));
+```
+NULLに<>を適用するとunknownになる
+```
+SELECT * FROM class_A
+WHERE (age <> 22) AND (age <> 23) AND unknown);
+```
+AND演算にunknownが含まれていると、結果がtrueにならない
+```
+SELECT * FROM class_A
+WHERE false または unknown;
+```
+正しいSQL：ラリーとポギーが選択される
+```
+SELECT * FROM class_A ca 
+WHERE NOT EXISTS 
+	(SELECT * FROM class_B cb
+	WHERE ca.age = cb.age
+	AND cb.city = '東京');
+```
