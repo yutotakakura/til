@@ -19,9 +19,9 @@
 ### 3倫理値の真理表(AND)
 | AND | t   | u   | f   |
 | --- | --- | --- | --- | 
-| t   | f   | u   | f   |
+| t   | t   | u   | f   |
 | u   | u   | u   | f   | 
-| f   | t   | f   | f   | 
+| f   | f   | f   | f   | 
 
 ### 3倫理値の真理表(OR)
 | OR  | t   | u   | f   |
@@ -172,4 +172,72 @@ WHERE NOT EXISTS
 	(SELECT * FROM class_B cb
 	WHERE ca.age = cb.age
 	AND cb.city = '東京');
+```
+段階的に追う
+サブクエリにおいて、NULLとの比較を行う
+```
+SELECT * FROM class_A ca 
+WHERE NOT EXISTS 
+	(SELECT * FROM class_B cb
+	WHERE ca.age = NULL
+	AND cb.city = '東京');
+```
+NULLに = を適用すると unknown になる
+```
+SELECT * FROM class_A ca 
+WHERE NOT EXISTS 
+	(SELECT * FROM class_B cb
+	WHERE unknown
+	AND cb.city = '東京');
+```
+AND演算にunknownが含まれていると、結果がtrueにならない
+```
+SELECT * FROM class_A ca 
+WHERE NOT EXISTS 
+	(SELECT * FROM class_B cb
+	WHERE false または unknown;
+```
+サブクエリが結果を返さないので、反対にNOT EXISTS は true になる
+EXISTS句は、trueとfalseしか返さない
+```
+SELECT * FROM class_A ca
+WHERE true;
+```
+
+### 限定述語とNULL
+ALLとANY。ANYはINと同義なのであまり使われないので、ALLを見ていく。<br>
+ALLは、比較述語と併用して、「〜全てと等しい」や「〜全てよりも大きい」という意味を表す。<br>
+一度山田に年齢をセット。
+```
+UPDATE class_B SET age = 20 WHERE name = '山田';
+```
+Bクラスの東京在住の誰よりも若いAクラスの生徒を選択する
+```
+SELECT * FROM class_A 
+	WHERE age < ALL (SELECT age FROM class_B 
+						WHERE city = '東京');
+```
+また山田の年齢をNULLにする。
+```
+UPDATE class_B SET age = NULL WHERE name = '山田';
+```
+この状態では、上記のSQLは一件も選択されない。段階的に見ていく。
+```
+SELECT * FROM class_A
+    WHERE age < ALL (22, 23, NULL);
+```
+ALL述語をANDで同値変換
+```
+SELECT * FROM class_A
+    WHERE (age < 22) AND (age < 23) AND (age < NULL);
+```
+NULLに<を適用すると、unknownになる。
+```
+SELECT * FROM class_A
+    WHERE (age < 22) AND (age < 23) AND unknown;
+```
+AND演算にunknownが含まれていると、結果がtrueにならない。
+```
+SELECT * FROM class_A
+    WHERE false または unknown;
 ```
