@@ -241,3 +241,42 @@ AND演算にunknownが含まれていると、結果がtrueにならない。
 SELECT * FROM class_A
     WHERE false または unknown;
 ```
+
+### 限定述語と極値関数は、同値ではない
+先ほどのSQLを極値関数で書き換える。<br>
+Bクラスの東京在住の誰よりも若いAクラスの生徒を選択する
+```
+SELECT * FROM class_A 
+	WHERE age < ALL (SELECT MIN(age) FROM class_B 
+						WHERE city = '東京');
+```
+結果として、山田の年齢がNULLでも、ポギーとラリーが返る。<br>
+これは、極値関数が集計の際にNULLを排除するから。<br>
+極値関数を使えば、NULLの場合にも対応できるように思えるが、意味の違いがある。<br>
+<br>
+ALL述語：彼は東京在住の誰よりも若い
+極値関数：彼は東京在住の最も若い生徒よりも若い
+<br>
+現実世界では、意味は同じだが、SQLでは述語の入力が空集合だったときに異なる挙動をする。（一件も返らない。）<br>
+東京在住の生徒をclass_Bから削除する。
+```
+DELETE FROM class_B WHERE city = '東京';
+```
+極値関数がNULLを返す。
+```
+SELECT * FROM class_A 
+	WHERE age < NULL;
+```
+NULLLに < を適用すると unknownになる。
+```
+SELECT * FROM class_A 
+	WHERE unknown;
+```
+
+### 集約関数とNULL
+東京在住の生徒の平均年齢よりも若い生徒を選択するSQL?　→ 一件も返らない。
+```
+SELECT * FROM class_A 
+	WHERE age < (SELECT AVG(age) FROM class_B 
+						WHERE city = '東京');
+```
