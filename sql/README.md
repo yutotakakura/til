@@ -15,16 +15,13 @@
 - [DBeaver](https://dbeaver.io/)
 
 # 環境構築メモ
-MySqlのコンテナを立てる。
-簡単なSQLを実行できる環境が欲しいだけなので、Dockerfileやdocker-compose.ymlは作らない。
-プライベートマシンが M1 Mac なので、プラットフォームを指定。
 
+## MySqlのコンテナを立てる
+プライベートマシンが M1 Mac なので、プラットフォームを指定する。
 ```
 docker run --platform linux/x86_64 -p 3306:3306 -e MYSQL_ROOT_PASSWORD=password -d mysql:latest
 ```
-
 コンテナに入り、以下コマンドでMySqlに入れることを確認。
 ```
 mysql -h127.0.0.1 -uroot -ppassword -P3306
 ```
-SQL実行や確認はDBeaverを使用。
