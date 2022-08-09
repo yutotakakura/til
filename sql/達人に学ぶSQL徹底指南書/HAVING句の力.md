@@ -126,34 +126,42 @@ SELECT CASE WHEN COUNT(*) = 0 OR MIN(seq)  >  1 -- 下限が1でない場合、1
   FROM SeqTbl;
 ```
 
-ToDo：上記クエリを全パターンで一通り試してから、続きをやる
+## HAVING句でサブクエリ -- 最頻値を求める
+
 ```
+-- テーブル定義
 CREATE TABLE Graduates
 (name   VARCHAR(16) PRIMARY KEY,
  income INTEGER NOT NULL);
 
-INSERT INTO Graduates VALUES('ÉTÉìÉvÉ\Éì', 400000);
-INSERT INTO Graduates VALUES('É}ÉCÉN',     30000);
-INSERT INTO Graduates VALUES('ÉzÉèÉCÉg',   20000);
-INSERT INTO Graduates VALUES('ÉAÅ[ÉmÉãÉh', 20000);
-INSERT INTO Graduates VALUES('ÉXÉ~ÉX',     20000);
-INSERT INTO Graduates VALUES('ÉçÉåÉìÉX',   15000);
-INSERT INTO Graduates VALUES('ÉnÉhÉ\Éì',   15000);
-INSERT INTO Graduates VALUES('ÉPÉìÉg',     10000);
-INSERT INTO Graduates VALUES('ÉxÉbÉJÅ[',   10000);
-INSERT INTO Graduates VALUES('ÉXÉRÉbÉg',   10000);
+INSERT INTO Graduates VALUES('サンプソン', 400000);
+INSERT INTO Graduates VALUES('マイク', 30000);
+INSERT INTO Graduates VALUES('ホワイト', 20000);
+INSERT INTO Graduates VALUES('アーノルド', 20000);
+INSERT INTO Graduates VALUES('スミス', 20000);
+INSERT INTO Graduates VALUES('ロレンス', 15000);
+INSERT INTO Graduates VALUES('ハドソン', 15000);
+INSERT INTO Graduates VALUES('ケント', 10000);
+INSERT INTO Graduates VALUES('ベッカー', 10000);
+INSERT INTO Graduates VALUES('スコット', 10000);
+```
 
-
--- ç≈ïpílÇãÅÇﬂÇÈ SQLÅ@ÇªÇÃ 1ÅFALLèqåÍÇÃóòóp 
+```
+/*
+最頻値を求めるSQL：その1 ALL述語の利用
+収入が同じ卒業生をひとまとめにする集合を作り、その集合群から養素数が最も多い集合を探す
+GROUP BY は、母集合を切り分けて部分集合を作る
+*/
 SELECT income, COUNT(*) AS cnt 
   FROM Graduates 
  GROUP BY income 
 HAVING COUNT(*) >= ALL ( SELECT COUNT(*) 
                            FROM Graduates
                           GROUP BY income);
+```
 
-
--- ç≈ïpílÇãÅÇﬂÇÈ SQLÅ@ÇªÇÃ 2ÅFã…ílä÷êîÇÃóòóp 
+```
+-- 最頻値を求めるSQL：その2：極値関数の利用
 SELECT income, COUNT(*) AS cnt 
   FROM Graduates 
  GROUP BY income 
@@ -161,72 +169,92 @@ HAVING COUNT(*) >= ( SELECT MAX(cnt)
                        FROM ( SELECT COUNT(*) AS cnt 
                                 FROM Graduates 
                                GROUP BY income) TMP ) ;
+```
 
+## NULLを含まない集合を探す
 
+- COUNT(*)とCOUNT(列名)の違い
+  - パフォーマンス
+  - COUNT(列名)は他の集約関数と同様、NULLを除外して考える。（COUNT(*)は全行数えるが、COUNT(列名)はそうでない。）
 
+```
+-- テーブル定義
 CREATE TABLE NullTbl (col_1 INTEGER);
 
 INSERT INTO NullTbl VALUES (NULL);
 INSERT INTO NullTbl VALUES (NULL);
 INSERT INTO NullTbl VALUES (NULL);
+```
 
+```
+-- NULLを含む列に適用した場合、COUNT(*)とCOUNT(列名)の結果は異なる
 SELECT COUNT(*), COUNT(col_1) 
   FROM NullTbl;
+```
 
-
-/* NULL Çä‹Ç‹Ç»Ç¢èWçáÇíTÇ∑ */
+```
+-- テーブル定義
 CREATE TABLE Students
 (student_id   INTEGER PRIMARY KEY,
  dpt          VARCHAR(16) NOT NULL,
  sbmt_date    DATE);
 
-INSERT INTO Students VALUES(100,  'óùäwïî',   '2018-10-10');
-INSERT INTO Students VALUES(101,  'óùäwïî',   '2018-09-22');
-INSERT INTO Students VALUES(102,  'ï∂äwïî',   NULL);
-INSERT INTO Students VALUES(103,  'ï∂äwïî',   '2018-09-10');
-INSERT INTO Students VALUES(200,  'ï∂äwïî',   '2018-09-22');
-INSERT INTO Students VALUES(201,  'çHäwïî',   NULL);
-INSERT INTO Students VALUES(202,  'åoçœäwïî', '2018-09-25');
+INSERT INTO Students VALUES(100, '理学部', '2018-10-10');
+INSERT INTO Students VALUES(101, '理学部', '2018-09-22');
+INSERT INTO Students VALUES(102, '文学部', NULL);
+INSERT INTO Students VALUES(103, '文学部', '2018-09-10');
+INSERT INTO Students VALUES(200, '文学部', '2018-09-22');
+INSERT INTO Students VALUES(201, '工学部', NULL);
+INSERT INTO Students VALUES(202, '経済学部', '2018-09-25');
+```
 
-
--- íÒèoì˙Ç… NULLÇä‹Ç‹Ç»Ç¢äwïîÇëIëÇ∑ÇÈÅ@ÇªÇÃÇPÅF COUNTä÷êîÇÃóòóp 
+```
+-- 提出日にNULLを含まない学部を選択するクエリ：その1　COUNT関数の利用
 SELECT dpt 
   FROM Students 
  GROUP BY dpt 
 HAVING COUNT(*) = COUNT(sbmt_date);
+```
 
--- íÒèoì˙Ç… NULLÇä‹Ç‹Ç»Ç¢äwïîÇëIëÇ∑ÇÈÅ@ÇªÇÃÇQÅF CASEéÆÇÃóòóp 
+```
+-- 提出日にNULLを含まない学部を選択するクエリ：その2　CASE式の利用
 SELECT dpt 
   FROM Students 
  GROUP BY dpt 
 HAVING COUNT(*) = SUM(CASE WHEN sbmt_date IS NOT NULL 
                            THEN 1 ELSE 0 END);
+```
 
+### 特性関数の応用
 
--- èWçáÇ…Ç´Çﬂç◊Ç©Ç»èåèÇê›íËÇ∑ÇÈ
+```
+-- テーブル定義
 CREATE TABLE TestResults
 (student_id CHAR(12) NOT NULL PRIMARY KEY,
  class   CHAR(1)  NOT NULL,
  sex     CHAR(1)  NOT NULL,
  score   INTEGER  NOT NULL);
 
-INSERT INTO TestResults VALUES('001', 'A', 'íj', 100);
-INSERT INTO TestResults VALUES('002', 'A', 'èó', 100);
-INSERT INTO TestResults VALUES('003', 'A', 'èó',  49);
-INSERT INTO TestResults VALUES('004', 'A', 'íj',  30);
-INSERT INTO TestResults VALUES('005', 'B', 'èó', 100);
-INSERT INTO TestResults VALUES('006', 'B', 'íj',  92);
-INSERT INTO TestResults VALUES('007', 'B', 'íj',  80);
-INSERT INTO TestResults VALUES('008', 'B', 'íj',  80);
-INSERT INTO TestResults VALUES('009', 'B', 'èó',  10);
-INSERT INTO TestResults VALUES('010', 'C', 'íj',  92);
-INSERT INTO TestResults VALUES('011', 'C', 'íj',  80);
-INSERT INTO TestResults VALUES('012', 'C', 'èó',  21);
-INSERT INTO TestResults VALUES('013', 'D', 'èó', 100);
-INSERT INTO TestResults VALUES('014', 'D', 'èó',   0);
-INSERT INTO TestResults VALUES('015', 'D', 'èó',   0);
+INSERT INTO TestResults VALUES('001', 'A', '男', 100);
+INSERT INTO TestResults VALUES('002', 'A', '女', 100);
+INSERT INTO TestResults VALUES('003', 'A', '女', 49);
+INSERT INTO TestResults VALUES('004', 'A', '男', 30);
+INSERT INTO TestResults VALUES('005', 'B', '女', 100);
+INSERT INTO TestResults VALUES('006', 'B', '男', 92);
+INSERT INTO TestResults VALUES('007', 'B', '男', 80);
+INSERT INTO TestResults VALUES('008', 'B', '男', 80);
+INSERT INTO TestResults VALUES('009', 'B', '女', 10);
+INSERT INTO TestResults VALUES('010', 'C', '男', 92);
+INSERT INTO TestResults VALUES('011', 'C', '男', 80);
+INSERT INTO TestResults VALUES('012', 'C', '女', 21);
+INSERT INTO TestResults VALUES('013', 'D', '女', 100);
+INSERT INTO TestResults VALUES('014', 'D', '女', 0);
+INSERT INTO TestResults VALUES('015', 'D', '女', 0);
+```
 
-
+ToDo : この問題の続き
+```
+-- クラスの75%以上の生徒が80点以上のクラスを選択するクエリ
 SELECT class 
   FROM TestResults 
  GROUP BY class 
@@ -234,7 +262,7 @@ HAVING COUNT(*) * 0.75
         <= SUM(CASE WHEN score >= 80 
                     THEN 1 
                     ELSE 0 END) ;
-
+```
 
 
 SELECT class 

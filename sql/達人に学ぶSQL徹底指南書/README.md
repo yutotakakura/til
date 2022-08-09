@@ -17,7 +17,7 @@
 ```
 docker run --platform linux/x86_64 -p 3306:3306 -e MYSQL_ROOT_PASSWORD=password -d mysql:latest
 ```
-コンテナに入り、以下コマンドでMySqlに入れることを確認。
+コンテナに入り、以下コマンドでMySQLに入れることを確認。
 ```
 mysql -h127.0.0.1 -uroot -ppassword -P3306
 ```
