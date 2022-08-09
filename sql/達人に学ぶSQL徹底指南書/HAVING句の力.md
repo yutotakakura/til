@@ -1,7 +1,8 @@
 # HAVING句の力
 
 ## ポイント
-- テーブルはファイルではない。行も順序を持たない。そのためSQLでは"原則"ソーとを記述しない。
+
+- テーブルはファイルではない。行も順序を持たない。そのためSQLでは"原則"ソートを記述しない。
 - 代わりにSQLは、求める集合に辿り着くまで次々に集合を作る。SQLで考えるときは四角と矢印を描くのではなく、円を描くのがコツ。
 - WHERE句が集合の要素の性質を調べつ道具であるのに対し、HAVING句は集合自身の性質を調べる道具である。
 - SQLで検索条件を設定するときは、検索対象となる実体が集合なのか集合の要素なのかを見極めることが基本。
@@ -9,8 +10,9 @@
     - 実体1つにつき複数行が対応している　→ 集合なのでHAVING句を使う
 
 ## データの歯抜けを探す
-テーブル定義
+
 ```
+-- テーブル定義
 CREATE TABLE SeqTbl
 (seq  INTEGER PRIMARY KEY,
  name VARCHAR(16) NOT NULL);
@@ -22,31 +24,42 @@ INSERT INTO SeqTbl VALUES(5, 'カー');
 INSERT INTO SeqTbl VALUES(6, 'マリー');
 INSERT INTO SeqTbl VALUES(8, 'ベン');
 ```
-テーブルがファイルなら、昇順か降順にソートさせてループさせて次の値と比較すればいい。<br>
-ファイルのレコードは順序をもつが、テーブルの行は順序を持たないため、集合として扱う。
+
+- テーブルがファイルなら、昇順か降順にソートさせてループさせて次の値と比較すればいい。
+- ファイルのレコードは順序をもつが、テーブルの行は順序を持たないため、集合として扱う。
+
 ### 結果が返れば歯抜けあり
+
 ```
+-- 数列の連続性のみ調べる。
 SELECT '歯抜けあり' AS gap 
   FROM SeqTbl 
 HAVING COUNT(*) <> MAX(seq);
 ```
-2つの集合に一対一対応があるか調べている。<br>
-HAVING句はGROUP BYがなくても使える。<br>
+
+- 2つの集合に一対一対応があるか調べている。
+- HAVING句はGROUP BYがなくても使える。
+
 ### 歯抜けの最小値を探す。
+
 ```
 SELECT MIN(seq + 1) AS gap 
   FROM SeqTbl 
  WHERE (seq+ 1) NOT IN (SELECT seq FROM SeqTbl);
 ```
-自分よりも1大きいseqが存在するかどうかを調べる。<br>
-NULLがあったら、もちろん正しい挙動はしない。<br>
+- 自分よりも1大きいseqが存在するかどうかを調べる。
+- NULLがあったら、もちろん正しい挙動はしない。
+
 ### 欠番を調べる（発展版）
-テーブル定義<br>
-ケース1：欠番なし（開始値＝1）
+
 ```
+-- テーブル定義
 CREATE TABLE SeqTbl
 ( seq INTEGER NOT NULL PRIMARY KEY);
+```
 
+```
+-- ケース1：欠番なし（開始値＝1）
 DELETE FROM SeqTbl;
 INSERT INTO SeqTbl VALUES(1);
 INSERT INTO SeqTbl VALUES(2);
@@ -54,8 +67,9 @@ INSERT INTO SeqTbl VALUES(3);
 INSERT INTO SeqTbl VALUES(4);
 INSERT INTO SeqTbl VALUES(5);
 ```
-ケース2：欠番あり（開始値＝1）
+
 ```
+-- ケース2：欠番あり（開始値＝1）
 DELETE FROM SeqTbl;
 INSERT INTO SeqTbl VALUES(1);
 INSERT INTO SeqTbl VALUES(2);
@@ -63,8 +77,9 @@ INSERT INTO SeqTbl VALUES(4);
 INSERT INTO SeqTbl VALUES(5);
 INSERT INTO SeqTbl VALUES(8);
 ```
-ケース3：欠番なし（開始値<>1）
+
 ```
+-- ケース3：欠番なし（開始値<>1）
 DELETE FROM SeqTbl;
 INSERT INTO SeqTbl VALUES(3);
 INSERT INTO SeqTbl VALUES(4);
@@ -72,8 +87,9 @@ INSERT INTO SeqTbl VALUES(5);
 INSERT INTO SeqTbl VALUES(6);
 INSERT INTO SeqTbl VALUES(7);
 ```
-ケース4：欠番あり（開始値<>1）
+
 ```
+-- ケース4：欠番あり（開始値<>1）
 DELETE FROM SeqTbl;
 INSERT INTO SeqTbl VALUES(3);
 INSERT INTO SeqTbl VALUES(4);
@@ -81,25 +97,27 @@ INSERT INTO SeqTbl VALUES(7);
 INSERT INTO SeqTbl VALUES(8);
 INSERT INTO SeqTbl VALUES(10);
 ```
-結果が返れば歯抜けあり：数列の連続性のみ調べる。
+
 ```
+-- 欠番がない場合、「上限値 - 下限値 + 1」とすれば一般化できる。
 SELECT '歯抜けあり' AS gap 
   FROM SeqTbl 
 HAVING COUNT(*) <> MAX(seq) - MIN(seq) + 1;
 ```
-欠番がない場合、「上限値 - 下限値 + 1」とすれば一般化できる。<br>
-欠番があってもなくても一行返す。
+
 ```
+-- 欠番があってもなくても一行返す。
 SELECT CASE WHEN COUNT(*) = 0 THEN 'テーブルが空です。' 
             WHEN COUNT(*) <> MAX(seq) -MIN(seq) + 1 THEN '歯抜けあり' 
             ELSE '連続' END AS gap 
   FROM SeqTbl;
 ```
-歯抜けの最小値を探す：テーブルに1がない場合は、1を返す。
+
 ```
-SELECT  CASE  WHEN  COUNT(*) = 0 OR MIN(seq)  >  1 -- 下限が1でない場合、1を返す。 
-              THEN  1  
-              ELSE  (SELECT MIN(seq +1)  -- 下限が1の場合、最小の欠番を返す。
+-- 歯抜けの最小値を探す：テーブルに1がない場合は、1を返す。
+SELECT CASE WHEN COUNT(*) = 0 OR MIN(seq)  >  1 -- 下限が1でない場合、1を返す。 
+              THEN 1  
+              ELSE (SELECT MIN(seq +1)  -- 下限が1の場合、最小の欠番を返す。
                        FROM SeqTbl S1  
                       WHERE NOT EXISTS  
                             (SELECT *  

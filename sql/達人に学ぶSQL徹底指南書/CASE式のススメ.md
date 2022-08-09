@@ -1,6 +1,7 @@
 # CASE式
 
 ## ポイント
+
 - GROUP BY句でCASE式を使うことで、集約単位となるコードや階級を柔軟に設定できる。これは非定性的な集計に大きな威力を発揮する。
 - 集約関数の中で使うことで、行持ちから列持ちへの水平展開も自由自在。
 - 反対に集約関数を条件式に組み込むことでHAVING句を使わずにクエリをまとめられる。
@@ -12,8 +13,8 @@
 
 ## 既存のコード体系を新しい体系に変換して集計する
 
-### テーブル定義
 ```
+-- テーブル定義
 CREATE TABLE PopTbl
 (pref_name VARCHAR(32) PRIMARY KEY,
  population INTEGER NOT NULL);
@@ -29,8 +30,8 @@ INSERT INTO PopTbl VALUES('東京', 400);
 INSERT INTO PopTbl VALUES('群馬', 50);
 ```
 
-### 県名を地方名に再分類する
 ```
+-- 県名を地方名に再分類する
 SELECT CASE pref_name
           WHEN '徳島' THEN '四国'
           WHEN '香川' THEN '四国'
@@ -70,8 +71,8 @@ SELECT CASE pref_name
  -- PostgreSQL, MySQLでは使える
 ```
 
-### 人口階級ごとに都道府県を分類する
 ```
+-- 人口階級ごとに都道府県を分類する
 SELECT CASE WHEN population < 100 THEN '01'
             WHEN population >= 100 AND population < 200 THEN '02'
             WHEN population >= 200 AND population < 300 THEN '03'
@@ -88,8 +89,8 @@ SELECT CASE WHEN population < 100 THEN '01'
 
 ## 異なる条件の集計を1つのSQLで行う
 
-### テーブル定義
 ```
+-- テーブル定義
 CREATE TABLE PopTbl2
 (pref_name VARCHAR(32),
  sex CHAR(1) NOT NULL,
@@ -114,10 +115,12 @@ INSERT INTO PopTbl2 VALUES('東京', '1',	250);
 INSERT INTO PopTbl2 VALUES('東京', '2',	150);
 ```
 
-### 性別ごとの人口を求める
-
-#### WHERE句を使ったクエリ
 ```
+/*
+性別ごとの人口を求める
+WHERE句を使ったクエリ
+*/
+
 -- 男性の人口
 SELECT pref_name,
        population
@@ -133,8 +136,12 @@ SELECT pref_name,
  WHERE sex = '2';
 ```
 
-#### CASE式でまとめたクエリ
 ```
+/*
+性別ごとの人口を求める
+CASE式でまとめたクエリ
+WHERE句で条件分岐させるのは素人。プロはSELECT句で分岐させる。
+*/
 SELECT pref_name,
        -- 男性の人口
        SUM( CASE WHEN sex = '1' THEN population ELSE 0 END) AS cnt_m,
@@ -143,21 +150,11 @@ SELECT pref_name,
   FROM PopTbl2
  GROUP BY pref_name;
 ```
-WHERE句で条件分岐させるのは素人。プロはSELECT句で分岐させる。
-ちなみにSUM関数なしだと以下のようにレコードが男性と女性で分かれる。同じ県で複数レコード出力される。
-```
-SELECT pref_name,
-       -- 男性の人口
-       CASE WHEN sex = '1' THEN population ELSE 0 END AS cnt_m,
-       -- 女性の人口
-       CASE WHEN sex = '2' THEN population ELSE 0 END AS cnt_f
-  FROM PopTbl2;
-```
 
 ## CASE式の中で集約関数を使う
 
-### テーブル定義
 ```
+-- テーブル定義
 CREATE TABLE StudentClub
 (std_id  INTEGER,
  club_id INTEGER,
@@ -175,25 +172,34 @@ INSERT INTO StudentClub VALUES(400, 5, '水泳', 'N');
 INSERT INTO StudentClub VALUES(500, 6, '囲碁', 'N');
 ```
 
-### 1つだけのクラブに所属している学生については、そのクラブIDを取得する。複数のクラブに所属している学生については、主なクラブIDを取得する。
-
-#### HAVING句を使ったクエリ
-1つのクラブに専念している学生を選択
 ```
+/*
+1つだけのクラブに所属している学生については、そのクラブIDを取得する。複数のクラブに所属している学生については、主なクラブIDを取得する。
+
+HAVING句を使ったクエリ
+*/
+
+-- 1つのクラブに専念している学生を選択
 SELECT std_id, MAX(club_id) AS main_club
   FROM StudentClub
  GROUP BY std_id
 HAVING COUNT(*) = 1;
 ```
-クラブを掛け持ちしている学生を選択
+
 ```
+-- クラブを掛け持ちしている学生を選択
 SELECT std_id, club_id AS main_club
   FROM StudentClub
  WHERE main_club_flg = 'Y';
 ```
 
-#### CASE式でまとめたクエリ
 ```
+/*
+1つだけのクラブに所属している学生については、そのクラブIDを取得する。複数のクラブに所属している学生については、主なクラブIDを取得する。
+
+CASE式でまとめたクエリ
+HAVING句で条件分岐させるのは素人。プロはSELECT句で分岐させる。
+*/
 SELECT std_id,
        CASE WHEN COUNT(*) = 1 --1つのクラブに専念する学生の場合
             THEN MAX(club_id)
@@ -203,4 +209,3 @@ SELECT std_id,
   FROM StudentClub
  GROUP BY std_id;
  ```
- HAVING句で条件分岐させるのは素人。プロはSELECT句で分岐させる。
