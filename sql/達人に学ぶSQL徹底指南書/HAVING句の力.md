@@ -252,7 +252,6 @@ INSERT INTO TestResults VALUES('014', 'D', '女', 0);
 INSERT INTO TestResults VALUES('015', 'D', '女', 0);
 ```
 
-ToDo : この問題の続き
 ```
 -- クラスの75%以上の生徒が80点以上のクラスを選択するクエリ
 SELECT class 
@@ -264,84 +263,115 @@ HAVING COUNT(*) * 0.75
                     ELSE 0 END) ;
 ```
 
+```
+/*
+50点以上を取った生徒のうち、男子の数が女子の数より多いクラスを選択するクエリ
+書籍の解答ではHAVING句の中でscore >= 50を指定しているが、男女で重複するのでWHERE句で行なった
+*/
+SELECT class
+  FROM TestResults WHERE score >= 50
+ GROUP BY class 
+HAVING SUM(CASE WHEN sex = '男' THEN 1 
+       ELSE 0 END) 
+     > SUM(CASE WHEN sex = '女' THEN 1 
+       ELSE 0 END);
+```
 
+```
+/*
+女子の平均点が、男子の平均点より高いクラスを選択するクエリ
+空集合に対する平均を0で表す
+*/
 SELECT class 
   FROM TestResults 
  GROUP BY class 
-HAVING SUM(CASE WHEN score >= 50 AND sex = 'íj' 
-                THEN 1 
-                ELSE 0 END) 
-         > SUM(CASE WHEN score >= 50 AND sex = 'èó' 
-                    THEN 1 
-                    ELSE 0 END) ; 
+HAVING AVG(CASE WHEN sex = '男' THEN score ELSE 0 END) 
+         < AVG(CASE WHEN sex = '女' THEN score ELSE 0 END);
+```
 
--- íjéqÇ∆èóéqÇÃïΩãœì_Çî‰ärÇ∑ÇÈÉNÉGÉäÇªÇÃ 1ÅFãÛèWçáÇ…ëŒÇ∑ÇÈïΩãœÇ0Ç≈ï‘Ç∑ 
+```
+/*
+女子の平均点が、男子の平均点より高いクラスを選択するクエリ
+空集合に対する平均をNULLで返す
+*/ 
 SELECT class 
   FROM TestResults 
  GROUP BY class 
-HAVING AVG(CASE WHEN sex = 'íj' THEN score ELSE 0 END) 
-         < AVG(CASE WHEN sex = 'èó' THEN score ELSE 0 END) ;
+HAVING AVG(CASE WHEN sex = '男' THEN score ELSE NULL END) 
+        < AVG(CASE WHEN sex = '女' THEN score ELSE NULL END);
+```
 
+## HAVING句の全称量化
 
--- íjéqÇ∆èóéqÇÃïΩãœì_Çî‰ärÇ∑ÇÈÉNÉGÉäÇªÇÃ 2ÅFãÛèWçáÇ…ëŒÇ∑ÇÈïΩãœÇ NULLÇ≈ï‘Ç∑ 
-SELECT class 
-  FROM TestResults 
- GROUP BY class 
-HAVING AVG(CASE WHEN sex = 'íj' THEN score ELSE NULL END) 
-        < AVG(CASE WHEN sex = 'èó' THEN score ELSE NULL END) ;
-
-
-
-
+```
+-- テーブル定義
 CREATE TABLE Teams
 (member  CHAR(12) NOT NULL PRIMARY KEY,
  team_id INTEGER  NOT NULL,
  status  CHAR(8)  NOT NULL);
 
-INSERT INTO Teams VALUES('ÉWÉáÅ[',   1, 'ë“ã@');
-INSERT INTO Teams VALUES('ÉPÉì',     1, 'èoìÆíÜ');
-INSERT INTO Teams VALUES('É~ÉbÉN',   1, 'ë“ã@');
-INSERT INTO Teams VALUES('ÉJÉåÉì',   2, 'èoìÆíÜ');
-INSERT INTO Teams VALUES('ÉLÅ[ÉX',   2, 'ãxâ…');
-INSERT INTO Teams VALUES('ÉWÉÉÉì',   3, 'ë“ã@');
-INSERT INTO Teams VALUES('ÉnÅ[Ég',   3, 'ë“ã@');
-INSERT INTO Teams VALUES('ÉfÉBÉbÉN', 3, 'ë“ã@');
-INSERT INTO Teams VALUES('ÉxÉX',     4, 'ë“ã@');
-INSERT INTO Teams VALUES('ÉAÉåÉì',   5, 'èoìÆíÜ');
-INSERT INTO Teams VALUES('ÉçÉoÅ[Ég', 5, 'ãxâ…');
-INSERT INTO Teams VALUES('ÉPÅ[ÉKÉì', 5, 'ë“ã@');
+INSERT INTO Teams VALUES('ジョー', 1, '待機');
+INSERT INTO Teams VALUES('ケン', 1, '出勤中');
+INSERT INTO Teams VALUES('ミック', 1, '待機');
+INSERT INTO Teams VALUES('カレン', 2, '出勤中');
+INSERT INTO Teams VALUES('キース', 2, '休暇');
+INSERT INTO Teams VALUES('ジャン', 3, '待機');
+INSERT INTO Teams VALUES('ハート', 3, '待機');
+INSERT INTO Teams VALUES('ディック', 3, '待機');
+INSERT INTO Teams VALUES('ベス', 4, '待機');
+INSERT INTO Teams VALUES('アレン', 5, '出勤中');
+INSERT INTO Teams VALUES('ロバート', 5, '休暇');
+INSERT INTO Teams VALUES('ケーガン', 5, '待機');
+```
 
--- ëSèÃï∂ÇèqåÍÇ≈ï\åªÇ∑ÇÈ 
+```
+/*
+全称文を述語で表現する
+全てのメンバーが待機中である
+*/
 SELECT team_id, member 
   FROM Teams T1 
  WHERE NOT EXISTS (SELECT * 
                      FROM Teams T2 
                     WHERE T1.team_id = T2.team_id 
-                      AND status <> 'ë“ã@ ' ); 
+                      AND status <> '待機' ); 
+```
 
-/* ëSèÃï∂ÇèWçáÇ≈ï\åªÇ∑ÇÈÅFÇªÇÃ1 */
+```
+/*
+全称文を集合で表現する①
+全てのメンバーが待機中である
+*/
 SELECT team_id
   FROM Teams
  GROUP BY team_id
-HAVING COUNT(*) = SUM(CASE WHEN status = 'ë“ã@'
+HAVING COUNT(*) = SUM(CASE WHEN status = '待機'
                            THEN 1
                            ELSE 0 END);
+```
 
--- ëSèÃï∂ÇèWçáÇ≈ï\åªÇ∑ÇÈÅFÇªÇÃ 2 
+```
+/*
+全称文を集合で表現する②
+全てのメンバーが待機中である
+*/
 SELECT team_id 
   FROM Teams 
  GROUP BY team_id 
-HAVING MAX(status) = 'ë“ã@ ' 
-   AND MIN(status) = 'ë“ã@ ';
+HAVING MAX(status) = '待機' 
+   AND MIN(status) = '待機';
+```
 
--- ëçàıÉXÉ^ÉìÉoÉCÇ©Ç«Ç§Ç©ÇÉ`Å[ÉÄÇ≤Ç∆Ç…àÍóóï\é¶ 
+```
+-- 総員スタンバイかどうかをチームごとに一覧表示
 SELECT team_id, 
-       CASE WHEN MAX(status) = 'ë“ã@ ' AND MIN(status) = 'ë“ã@ ' 
-            THEN 'ëçàıÉXÉ^ÉìÉoÉC ' 
-            ELSE 'ë‡í∑ÅIÉÅÉìÉoÅ[Ç™ë´ÇËÇ‹ÇπÇÒ ' END AS status 
+       CASE WHEN MAX(status) = '待機' AND MIN(status) = '待機' 
+            THEN '総員スタンバイ！' 
+            ELSE '隊長！メンバーが足りません！' END AS status 
   FROM Teams GROUP BY team_id; 
+```
 
-
+```
 -- àÍà”èWçáÇ∆ëΩèdèWçá
 CREATE TABLE Materials
 (center         CHAR(12) NOT NULL,
