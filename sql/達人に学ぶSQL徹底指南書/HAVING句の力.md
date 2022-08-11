@@ -371,46 +371,51 @@ SELECT team_id,
   FROM Teams GROUP BY team_id; 
 ```
 
+## 一意集合と多重集合
+
 ```
--- àÍà”èWçáÇ∆ëΩèdèWçá
+-- テーブル定義
 CREATE TABLE Materials
 (center         CHAR(12) NOT NULL,
  receive_date   DATE     NOT NULL,
  material       CHAR(12) NOT NULL,
  PRIMARY KEY(center, receive_date));
 
-INSERT INTO Materials VALUES('ìåãû'	,'2018-4-01',	'é‡');
-INSERT INTO Materials VALUES('ìåãû'	,'2018-4-12',	'àüâî');
-INSERT INTO Materials VALUES('ìåãû'	,'2018-5-17',	'ÉAÉãÉ~ÉjÉEÉÄ');
-INSERT INTO Materials VALUES('ìåãû'	,'2018-5-20',	'àüâî');
-INSERT INTO Materials VALUES('ëÂç„'	,'2018-4-20',	'ì∫');
-INSERT INTO Materials VALUES('ëÂç„'	,'2018-4-22',	'ÉjÉbÉPÉã');
-INSERT INTO Materials VALUES('ëÂç„'	,'2018-4-29',	'âî');
-INSERT INTO Materials VALUES('ñºå√âÆ',	'2018-3-15',	'É`É^Éì');
-INSERT INTO Materials VALUES('ñºå√âÆ',	'2018-4-01',	'íYëfç|');
-INSERT INTO Materials VALUES('ñºå√âÆ',	'2018-4-24',	'íYëfç|');
-INSERT INTO Materials VALUES('ñºå√âÆ',	'2018-5-02',	'É}ÉOÉlÉVÉEÉÄ');
-INSERT INTO Materials VALUES('ñºå√âÆ',	'2018-5-10',	'É`É^Éì');
-INSERT INTO Materials VALUES('ïüâ™'	,'2018-5-10',	'àüâî');
-INSERT INTO Materials VALUES('ïüâ™'	,'2018-5-28',	'é‡');
+INSERT INTO Materials VALUES('東京','2018-4-01', '錫');
+INSERT INTO Materials VALUES('東京','2018-4-12', '亜鉛');
+INSERT INTO Materials VALUES('東京','2018-5-17', 'アルミニウム');
+INSERT INTO Materials VALUES('東京','2018-5-20', '亜鉛');
+INSERT INTO Materials VALUES('大阪','2018-4-20', '銅');
+INSERT INTO Materials VALUES('大阪','2018-4-22', 'ニッケル');
+INSERT INTO Materials VALUES('大阪','2018-4-29', '鉛');
+INSERT INTO Materials VALUES('名古屋', '2018-3-15',	'チタン');
+INSERT INTO Materials VALUES('名古屋', '2018-4-01',	'炭素鋼');
+INSERT INTO Materials VALUES('名古屋', '2018-4-24',	'炭素鋼');
+INSERT INTO Materials VALUES('名古屋', '2018-5-02',	'マグネシウム');
+INSERT INTO Materials VALUES('名古屋', '2018-5-10',	'チタン');
+INSERT INTO Materials VALUES('福岡','2018-5-10', '亜鉛');
+INSERT INTO Materials VALUES('福岡','2018-5-28', '錫');
+```
 
-
--- éëçﬁÇÃÉ_ÉuÇ¡ÇƒÇ¢ÇÈãíì_ÇëIëÇ∑ÇÈ
+```
+-- 資材のダブっている拠点を選択する
 SELECT center
   FROM Materials
  GROUP BY center
 HAVING COUNT(material) <> COUNT(DISTINCT material);
+```
 
-
+```
 SELECT center, CASE WHEN COUNT(material) <> COUNT(DISTINCT material)
-                    THEN 'É_ÉuÇËóLÇË'
-                    ELSE 'É_ÉuÇËñ≥Çµ'
+                    THEN 'ダブり有り'
+                    ELSE 'ダブり無し'
                 END AS status
   FROM Materials
  GROUP BY center;
+```
 
-
--- É_ÉuÇËÇÃÇ†ÇÈèWçáÅFEXISTSÇÃóòóp
+```
+-- ダブりのある集合：EXISTSの利用
 SELECT center, material
   FROM Materials M1
  WHERE EXISTS (SELECT *
@@ -418,7 +423,7 @@ SELECT center, material
                 WHERE M1.center = M2.center
                   AND M1.receive_date <> M2.receive_date
                   AND M1.material = M2.material);
-
+```
 
 
 /* ä÷åWèúéZÇ≈ÉoÉXÉPÉbÉgâêÕ */
