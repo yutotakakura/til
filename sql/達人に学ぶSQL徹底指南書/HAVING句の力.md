@@ -425,8 +425,10 @@ SELECT center, material
                   AND M1.material = M2.material);
 ```
 
+## 関係除算でバスケット解析
 
-/* ä÷åWèúéZÇ≈ÉoÉXÉPÉbÉgâêÕ */
+```
+-- テーブル定義
 CREATE TABLE Items
 (item VARCHAR(16) PRIMARY KEY);
  
@@ -435,48 +437,52 @@ CREATE TABLE ShopItems
  item VARCHAR(16),
     PRIMARY KEY(shop, item));
 
-INSERT INTO Items VALUES('ÉrÅ[Éã');
-INSERT INTO Items VALUES('éÜÉIÉÄÉc');
-INSERT INTO Items VALUES('é©ì]é‘');
+INSERT INTO Items VALUES('ビール');
+INSERT INTO Items VALUES('紙オムツ');
+INSERT INTO Items VALUES('自転車');
 
-INSERT INTO ShopItems VALUES('êÂë‰',  'ÉrÅ[Éã');
-INSERT INTO ShopItems VALUES('êÂë‰',  'éÜÉIÉÄÉc');
-INSERT INTO ShopItems VALUES('êÂë‰',  'é©ì]é‘');
-INSERT INTO ShopItems VALUES('êÂë‰',  'ÉJÅ[ÉeÉì');
-INSERT INTO ShopItems VALUES('ìåãû',  'ÉrÅ[Éã');
-INSERT INTO ShopItems VALUES('ìåãû',  'éÜÉIÉÄÉc');
-INSERT INTO ShopItems VALUES('ìåãû',  'é©ì]é‘');
-INSERT INTO ShopItems VALUES('ëÂç„',  'ÉeÉåÉr');
-INSERT INTO ShopItems VALUES('ëÂç„',  'éÜÉIÉÄÉc');
-INSERT INTO ShopItems VALUES('ëÂç„',  'é©ì]é‘');
+INSERT INTO ShopItems VALUES('仙台', 'ビール');
+INSERT INTO ShopItems VALUES('仙台', '紙オムツ');
+INSERT INTO ShopItems VALUES('仙台', '自転車');
+INSERT INTO ShopItems VALUES('仙台', 'カーテン');
+INSERT INTO ShopItems VALUES('東京', 'ビール');
+INSERT INTO ShopItems VALUES('東京', '紙オムツ');
+INSERT INTO ShopItems VALUES('東京', '自転車');
+INSERT INTO ShopItems VALUES('大阪', 'テレビ');
+INSERT INTO ShopItems VALUES('大阪', '紙オムツ');
+INSERT INTO ShopItems VALUES('大阪', '自転車');
+```
 
--- ÉrÅ[ÉãÇ∆éÜÉIÉÄÉcÇ∆é©ì]é‘ÇÇ∑Ç◊ÇƒíuÇ¢ÇƒÇ¢ÇÈìXï‹ÇåüçıÇ∑ÇÈÅFä‘à·Ç¡ÇΩ SQL 
+```
+-- ビールと紙オムツと自転車を全て置いている店舗を選択する：間違ったクエリ
 SELECT DISTINCT shop 
   FROM ShopItems 
  WHERE item IN (SELECT item FROM Items);
+```
 
-
-
--- ÉrÅ[ÉãÇ∆éÜÉIÉÄÉcÇ∆é©ì]é‘ÇÇ∑Ç◊ÇƒíuÇ¢ÇƒÇ¢ÇÈìXï‹ÇåüçıÇ∑ÇÈÅFê≥ÇµÇ¢ SQL 
+```
+-- ビールと紙オムツと自転車を全て置いている店舗を選択する：正しいクエリ
 SELECT SI.shop 
   FROM ShopItems SI INNER JOIN Items I 
     ON SI.item = I.item 
  GROUP BY SI.shop 
 HAVING COUNT(SI.item) = (SELECT COUNT(item) FROM Items);
+```
 
-
--- COUNT(I.item)ÇÕÇ‡ÇÕÇ‚ 3Ç∆ÇÕå¿ÇÁÇ»Ç¢ 
+```
+-- COUNT(I.item)はもはや3とは限らない
 SELECT SI.shop, COUNT(SI.item), COUNT(I.item) 
   FROM ShopItems SI INNER JOIN Items I 
     ON SI.item = I.item 
  GROUP BY SI.shop;
+```
 
-
--- åµñßÇ»ä÷åWèúéZÅFäOïîåãçáÇ∆ COUNTä÷êîÇÃóòóp 
+```
+-- 厳密な関係除算：外部結合とCOUNT関数の利用 
 SELECT SI.shop 
   FROM ShopItems SI LEFT OUTER JOIN Items I 
     ON SI.item=I.item 
  GROUP BY SI.shop 
-HAVING COUNT(SI.item) = (SELECT COUNT(item) FROM Items)  -- èåè 1 
-   AND COUNT(I.item)  = (SELECT COUNT(item) FROM Items); -- èåè 2
+HAVING COUNT(SI.item) = (SELECT COUNT(item) FROM Items) -- 条件1 
+   AND COUNT(I.item)  = (SELECT COUNT(item) FROM Items); -- 条件2
 ```
