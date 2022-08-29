@@ -1,4 +1,4 @@
-# HAVING句の力
+# HAVING句
 
 ## ポイント
 
